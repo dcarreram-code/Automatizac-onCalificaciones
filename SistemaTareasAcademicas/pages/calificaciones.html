@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Calificaciones</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-4">
+
+<h2>Gestión de Calificaciones</h2>
+
+<div class="card shadow mt-3">
+
+<div class="card-body">
+
+<table class="table table-striped">
+
+<thead>
+
+<tr>
+<th>Alumno</th>
+<th>Tarea</th>
+<th>Estado</th>
+<th>Nota</th>
+<th>Acción</th>
+</tr>
+
+</thead>
+
+<tbody id="tablaCalificaciones">
+
+<tr>
+<td colspan="5" class="text-center">
+Cargando...
+</td>
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+async function cargarPendientes() {
+
+    const tabla =
+    document.getElementById(
+        "tablaCalificaciones"
+    );
+
+    try {
+
+        const respuesta =
+        await fetch(
+            "http://localhost:5678/webhook/pendientes-calificar"
+        );
+
+        if (!respuesta.ok) {
+            throw new Error(
+                "Error HTTP " + respuesta.status
+            );
+        }
+
+        const texto =
+        await respuesta.text();
+
+        tabla.innerHTML = "";
+
+        if (
+            texto.trim() === ""
+        ) {
+
+            tabla.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-muted">
+                    No hay tareas pendientes de calificar
+                </td>
+            </tr>
+            `;
+
+            return;
+        }
+
+        const datos =
+        JSON.parse(texto);
+
+        if (
+            !datos.pendientes ||
+            datos.pendientes.length === 0
+        ) {
+
+            tabla.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-muted">
+                    No hay tareas pendientes de calificar
+                </td>
+            </tr>
+            `;
+
+            return;
+        }
+
+        datos.pendientes.forEach(
+            entrega => {
+
+            tabla.innerHTML += `
+            <tr>
+
+                <td>${entrega.Nombre}</td>
+
+                <td>${entrega.Titulo}</td>
+
+                <td>
+                    <span class="badge bg-warning">
+                        ${entrega.Estado}
+                    </span>
+                </td>
+
+                <td>
+
+                    <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        class="form-control"
+                        id="nota-${entrega.IdEntrega}">
+
+                </td>
+
+                <td>
+
+                    <button
+                        class="btn btn-primary"
+                        onclick="guardarNota(${entrega.IdEntrega})">
+
+                        Guardar
+
+                    </button>
+
+                </td>
+
+            </tr>
+            `;
+
+        });
+
+    }
+    catch(error) {
+
+        console.error(error);
+
+        tabla.innerHTML = `
+        <tr>
+            <td colspan="5" class="text-center text-danger">
+                Error al cargar pendientes
+            </td>
+        </tr>
+        `;
+
+    }
+
+}
+
+async function guardarNota(idEntrega) {
+
+    const nota =
+    document.getElementById(
+        `nota-${idEntrega}`
+    ).value;
+
+    if (
+        nota === ""
+    ) {
+
+        alert(
+            "Ingrese una nota"
+        );
+
+        return;
+    }
+
+    if (
+        nota < 0 ||
+        nota > 100
+    ) {
+
+        alert(
+            "La nota debe estar entre 0 y 100"
+        );
+
+        return;
+    }
+
+    try {
+
+        const respuesta =
+        await fetch(
+            "http://localhost:5678/webhook/calificar",
+            {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                    "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    idEntrega:
+                    idEntrega,
+
+                    nota:
+                    Number(nota)
+
+                })
+
+            }
+        );
+
+        if (!respuesta.ok) {
+
+            throw new Error(
+                "Error HTTP " +
+                respuesta.status
+            );
+
+        }
+
+        const resultado =
+        await respuesta.json();
+
+        console.log(
+            resultado
+        );
+
+        alert(
+            "Nota guardada correctamente"
+        );
+
+        cargarPendientes();
+
+    }
+    catch(error) {
+
+        console.error(error);
+
+        alert(
+            "Error al guardar nota"
+        );
+
+    }
+
+}
+
+cargarPendientes();
+
+</script>
+
+</body>
+</html>

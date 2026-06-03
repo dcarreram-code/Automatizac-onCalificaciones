@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Dashboard Estudiante</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+
+<div class="container-fluid">
+
+<a class="navbar-brand" href="#">
+Sistema Académico
+</a>
+
+<button
+class="navbar-toggler"
+type="button"
+data-bs-toggle="collapse"
+data-bs-target="#menuEstudiante">
+
+<span class="navbar-toggler-icon"></span>
+
+</button>
+
+<div
+class="collapse navbar-collapse"
+id="menuEstudiante">
+
+<ul class="navbar-nav me-auto">
+
+<li class="nav-item">
+<a
+class="nav-link active"
+href="dashboard-estudiante.html">
+Dashboard
+</a>
+</li>
+
+<li class="nav-item">
+<a
+class="nav-link"
+href="subir-tarea.html">
+Subir Tarea
+</a>
+</li>
+
+</ul>
+
+<span class="navbar-text text-white me-3">
+Estudiante
+</span>
+
+<a
+href="index.html"
+class="btn btn-danger btn-sm">
+Cerrar Sesión
+</a>
+
+</div>
+
+</div>
+
+</nav>
+
+<div class="container mt-4">
+
+<h2>Bienvenido Estudiante</h2>
+
+<div class="row mt-4">
+
+<div class="col-md-4">
+<div class="card shadow">
+<div class="card-body text-center">
+<h5>Tareas Entregadas</h5>
+<h1 id="totalEntregadas">0</h1>
+</div>
+</div>
+</div>
+
+<div class="col-md-4">
+<div class="card shadow">
+<div class="card-body text-center">
+<h5>Pendientes</h5>
+<h1 id="totalPendientes">0</h1>
+</div>
+</div>
+</div>
+
+<div class="col-md-4">
+<div class="card shadow">
+<div class="card-body text-center">
+<h5>Promedio</h5>
+<h1 id="promedio">0</h1>
+</div>
+</div>
+</div>
+
+</div>
+
+<!-- TAREAS DISPONIBLES -->
+
+<div class="card mt-4 shadow">
+
+<div class="card-header bg-primary text-white">
+Tareas Disponibles
+</div>
+
+<div class="card-body">
+
+<table class="table">
+
+<thead>
+<tr>
+<th>Tarea</th>
+</tr>
+</thead>
+
+<tbody id="tablaTareasDisponibles">
+
+<tr>
+<td>Cargando...</td>
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+<!-- MIS ENTREGAS -->
+
+<div class="card mt-4 shadow">
+
+<div class="card-header">
+Mis Entregas
+</div>
+
+<div class="card-body">
+
+<table class="table">
+
+<thead>
+<tr>
+<th>Tarea</th>
+<th>Estado</th>
+<th>Nota</th>
+</tr>
+</thead>
+
+<tbody id="tablaEntregas">
+
+<tr>
+<td colspan="3" class="text-center">
+Cargando...
+</td>
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+async function cargarDashboard() {
+
+    try {
+
+        const respuesta =
+        await fetch(
+            "http://localhost:5678/webhook/dashboard-estudiante"
+        );
+
+        const datos =
+        await respuesta.json();
+
+        const entregas =
+        datos[0]?.entregas || [];
+
+        const tabla =
+        document.getElementById(
+            "tablaEntregas"
+        );
+
+        tabla.innerHTML = "";
+
+        let pendientes = 0;
+        let sumaNotas = 0;
+        let cantidadNotas = 0;
+
+        if (entregas.length === 0) {
+
+            tabla.innerHTML = `
+            <tr>
+                <td colspan="3" class="text-center text-muted">
+                    No existen entregas registradas
+                </td>
+            </tr>
+            `;
+        }
+
+        entregas.forEach(entrega => {
+
+            let badge = "bg-secondary";
+
+            if (
+                entrega.Estado === "CALIFICADA"
+            ) {
+                badge = "bg-success";
+            }
+
+            if (
+                entrega.Estado === "PENDIENTE_CALIFICACION" ||
+                entrega.Estado === "Recibida"
+            ) {
+                badge = "bg-warning";
+                pendientes++;
+            }
+
+            if (
+                entrega.Nota !== null &&
+                entrega.Nota !== undefined
+            ) {
+                sumaNotas += Number(entrega.Nota);
+                cantidadNotas++;
+            }
+
+            tabla.innerHTML += `
+            <tr>
+
+                <td>${entrega.Titulo}</td>
+
+                <td>
+                    <span class="badge ${badge}">
+                        ${entrega.Estado}
+                    </span>
+                </td>
+
+                <td>
+                    ${entrega.Nota ?? "-"}
+                </td>
+
+            </tr>
+            `;
+
+        });
+
+        document.getElementById(
+            "totalEntregadas"
+        ).textContent =
+        entregas.length;
+
+        document.getElementById(
+            "promedio"
+        ).textContent =
+        cantidadNotas > 0
+        ? (sumaNotas / cantidadNotas).toFixed(0)
+        : 0;
+
+    }
+    catch(error) {
+
+        console.error(error);
+
+    }
+
+}
+
+async function cargarTareasDisponibles(){
+
+    try{
+
+        const respuesta =
+        await fetch(
+            "http://localhost:5678/webhook/tareas-activas"
+        );
+
+        const datos =
+        await respuesta.json();
+
+        const tabla =
+        document.getElementById(
+            "tablaTareasDisponibles"
+        );
+
+        tabla.innerHTML = "";
+
+        const tareas =
+        datos.tareas || [];
+
+          document.getElementById(
+         "totalPendientes"
+        ).textContent =
+        0;
+
+        if(
+            tareas.length === 0
+        ){
+
+            tabla.innerHTML =
+            `
+            <tr>
+                <td>
+                    No hay tareas activas
+                </td>
+            </tr>
+            `;
+
+            return;
+        }
+
+        tareas.forEach(tarea=>{
+
+            tabla.innerHTML +=
+            `
+            <tr>
+                <td>
+                    ${tarea.Titulo}
+                </td>
+            </tr>
+            `;
+
+        });
+
+    }
+    catch(error){
+
+        console.error(error);
+
+    }
+
+}
+
+cargarDashboard();
+cargarTareasDisponibles();
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

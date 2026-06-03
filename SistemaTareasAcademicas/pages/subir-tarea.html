@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Subir Tarea</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-md-8">
+
+            <div class="card shadow">
+
+                <div class="card-header bg-primary text-white">
+                    Subir Tarea
+                </div>
+
+                <div class="card-body">
+
+                    <form id="formEntrega">
+
+                        <div class="mb-3">
+
+                            <label>Curso</label>
+
+                            <select
+                                class="form-select"
+                                id="curso"
+                                required>
+
+                                <option value="">
+                                    Seleccione un curso
+                                </option>
+
+                                <option>
+                                    Análisis de Sistemas
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label>Tarea</label>
+
+                            <select
+                                class="form-select"
+                                id="tarea"
+                                required>
+
+                                <option value="">
+                                    Cargando tareas...
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label>Archivo PDF</label>
+
+                            <input
+                                type="file"
+                                class="form-control"
+                                id="archivo"
+                                accept=".pdf">
+
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="btn btn-success">
+
+                            Enviar Tarea
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+async function cargarTareas(){
+
+    try{
+
+        const respuesta =
+        await fetch(
+            "http://localhost:5678/webhook/tareas-activas"
+        );
+
+        const datos =
+        await respuesta.json();
+
+        const combo =
+        document.getElementById(
+            "tarea"
+        );
+
+        combo.innerHTML = "";
+
+        const tareas =
+        datos.tareas || [];
+
+        if(tareas.length === 0){
+
+            combo.innerHTML =
+            `
+            <option value="">
+                No hay tareas activas
+            </option>
+            `;
+
+            return;
+        }
+
+        combo.innerHTML =
+        `
+        <option value="">
+            Seleccione una tarea
+        </option>
+        `;
+
+        tareas.forEach(tarea => {
+
+            combo.innerHTML +=
+            `
+            <option value="${tarea.IdTarea}">
+                ${tarea.Titulo}
+            </option>
+            `;
+
+        });
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        document.getElementById(
+            "tarea"
+        ).innerHTML =
+        `
+        <option value="">
+            Error al cargar tareas
+        </option>
+        `;
+
+    }
+
+}
+
+document.getElementById("formEntrega")
+.addEventListener("submit", async function(e){
+
+    e.preventDefault();
+
+    const archivo =
+    document.getElementById(
+        "archivo"
+    ).files[0];
+
+    const idEstudiante =
+    Number(
+        localStorage.getItem(
+            "idEstudiante"
+        )
+    );
+
+    if(!idEstudiante){
+
+        alert(
+            "Debe iniciar sesión nuevamente"
+        );
+
+        return;
+
+    }
+
+    const datos = {
+
+        idEstudiante:
+        idEstudiante,
+
+        idTarea:
+        Number(
+            document.getElementById(
+                "tarea"
+            ).value
+        ),
+
+        nombreArchivo:
+        archivo
+        ? archivo.name
+        : "SinArchivo.pdf"
+
+    };
+
+    console.log(
+        "DATOS ENVIADOS:"
+    );
+
+    console.log(
+        datos
+    );
+
+    try{
+
+        const respuesta =
+        await fetch(
+            "http://localhost:5678/webhook/recepcion-tarea",
+            {
+                method:"POST",
+
+                headers:{
+                    "Content-Type":
+                    "application/json"
+                },
+
+                body:
+                JSON.stringify(
+                    datos
+                )
+            }
+        );
+
+        const texto =
+        await respuesta.text();
+
+        console.log(
+            "RESPUESTA RAW:"
+        );
+
+        console.log(
+            texto
+        );
+
+        let resultado = {};
+
+        if(
+            texto &&
+            texto.trim() !== ""
+        ){
+
+            resultado =
+            JSON.parse(
+                texto
+            );
+
+        }
+
+        console.log(
+            "RESPUESTA JSON:"
+        );
+
+        console.log(
+            resultado
+        );
+
+        if(
+            resultado.success === false
+        ){
+
+            alert(
+                resultado.mensaje
+            );
+
+            return;
+
+        }
+
+        alert(
+            resultado.mensaje ||
+            "Tarea enviada correctamente"
+        );
+
+        document
+        .getElementById(
+            "formEntrega"
+        )
+        .reset();
+
+        cargarTareas();
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        alert(
+            "Error al enviar la tarea"
+        );
+
+    }
+
+});
+
+cargarTareas();
+
+</script>
+
+</body>
+</html>
