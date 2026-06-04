@@ -1,0 +1,340 @@
+{
+  "name": "1-WF_Recepcion_Tareas",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "recepcion-tarea",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -64,
+        -144
+      ],
+      "id": "670c8ddd-cec9-45e5-abbf-7a25d5c881f6",
+      "name": "Webhook",
+      "webhookId": "b8be0f75-b61c-4f1d-8826-469086029eab"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d40f7037-457d-4244-b5c3-febd75d11bbc",
+              "leftValue": "carnet",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "2072bcb9-8321-4298-a6b3-6fe873d14b5a",
+              "leftValue": "nombre",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        368,
+        -144
+      ],
+      "id": "8cc87451-b39f-4d25-b14f-fd0300d8a68a",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO Entregas\n(\n    IdTarea,\n    IdEstudiante,\n    NombreArchivo,\n    RutaArchivo,\n    FechaEntrega,\n    Estado\n)\nVALUES\n(\n    {{ $('Webhook').item.json.body.idTarea }},\n    {{ $('Webhook').item.json.body.idEstudiante }},\n    '{{ $('Webhook').item.json.body.nombreArchivo }}',\n    '/uploads',\n    GETDATE(),\n    'Recibida'\n)",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        1424,
+        -16
+      ],
+      "id": "4b421183-8529-4e62-b2bf-39afa52e52fd",
+      "name": "Insertar Entrega",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO Auditoria\n(\n    Evento,\n    Fecha,\n    UsuarioSistema,\n    Resultado\n)\nVALUES\n(\n    'Nueva entrega registrada',\n    GETDATE(),\n    'ESTUDIANTE',\n    'Entrega recibida correctamente'\n)",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        -128
+      ],
+      "id": "e414371b-6338-4b69-96b6-3d026f84d5f2",
+      "name": "Registrar Auditoría",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"mensaje\": \"Entrega registrada correctamente\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1888,
+        -192
+      ],
+      "id": "54434298-40b5-47b5-a9fd-f75e7685b825",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\nCOUNT(*) AS Existe\nFROM Entregas\nWHERE IdEstudiante = {{ $json.body.idEstudiante }}\nAND IdTarea = {{ $json.body.idTarea }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        624,
+        -256
+      ],
+      "id": "17364aa4-ac2c-418f-ae16-3b5a7148606f",
+      "name": "Validacíon",
+      "alwaysOutputData": true,
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": false,\n  \"mensaje\": \"La tarea ya fue entregada\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1408,
+        -304
+      ],
+      "id": "96afafb9-f3e1-4137-be5f-3f0fae220bf9",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d4cc06aa-45d3-4299-813d-a34296367673",
+              "name": "fechaRegistro",
+              "value": "={{$now}}",
+              "type": "string"
+            },
+            {
+              "id": "e8d613d4-9b5f-4e9d-97ed-0a589120f924",
+              "name": "=nombreArchivo",
+              "value": "={{ $json.body.nombreArchivo }}",
+              "type": "string"
+            },
+            {
+              "id": "8dc8bdeb-2507-4c2a-8394-3fc955f6e2da",
+              "name": "idEstudiante",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "b82191ed-31d0-494f-82ef-61ef7640fb2d",
+              "name": "idTarea",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "9b9b682b-dbf1-4e96-a8d2-64cfa702a8e6",
+              "name": "nombreArchivo",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        144,
+        -144
+      ],
+      "id": "a2cb21ee-8ff8-498a-934e-5a0a75792242",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "57e6653f-798c-4c72-9c82-b1abb5727f9a",
+              "leftValue": "={{ $json.Existe }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        -160
+      ],
+      "id": "587a8e65-625c-4f88-b8da-d49ab960506a",
+      "name": "If1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Validacíon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insertar Entrega": {
+      "main": [
+        [
+          {
+            "node": "Registrar Auditoría",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Auditoría": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validacíon": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insertar Entrega",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ae6ff57c-a285-432f-8835-de1ea03af60c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "LgJYkRW3zYjfTdhq",
+  "tags": []
+}

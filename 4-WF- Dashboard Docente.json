@@ -1,0 +1,119 @@
+{
+  "name": "4-WF- Dashboard Docente",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "dashboard-docente",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "1ce1e654-a19b-4d32-b125-88bc6749df20",
+      "name": "Webhook",
+      "webhookId": "17a9b85c-6fb7-4534-8049-2eccacf663cd"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    e.IdEntrega,\n    es.Nombre,\n    t.Titulo,\n    e.FechaEntrega,\n    e.Estado,\n    e.Nota\nFROM Entregas e\nINNER JOIN Estudiantes es\n    ON e.IdEstudiante = es.IdEstudiante\nINNER JOIN Tareas t\n    ON e.IdTarea = t.IdTarea\nORDER BY e.FechaEntrega DESC",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        -32
+      ],
+      "id": "a1e27a9e-9009-4b2d-b31c-fde52b2ba4b0",
+      "name": "Consultar Entregas",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        640,
+        0
+      ],
+      "id": "10b9ecb3-6473-4735-bd1e-eb954e1ed9ce",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n{\n  json: {\n    entregas: $input.all().map(item => item.json)\n  }\n}\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -48
+      ],
+      "id": "cbb74069-c224-46d5-912e-47becec4ac50",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Consultar Entregas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Entregas": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1c70e34d-6e89-46d2-826d-0517b6dbd5a6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "Jo5RJwFA4XHSFbNm",
+  "tags": []
+}

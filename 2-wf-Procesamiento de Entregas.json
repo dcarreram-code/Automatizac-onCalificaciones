@@ -1,0 +1,205 @@
+{
+  "name": "2-wf-Procesamiento de Entregas",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "59f74d55-144f-40bd-a729-a75f3ea78546",
+              "leftValue": "={{ $json.IdEntrega != null }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "={{ false }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "2207cd46-4415-40ff-be39-f06ca43e37e3",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    e.IdEntrega,\n    e.IdEstudiante,\n    e.IdTarea,\n    e.FechaEntrega,\n    t.FechaLimite,\n    e.Estado\nFROM Entregas e\nINNER JOIN Tareas t\nON e.IdTarea = t.IdTarea\nWHERE e.Estado = 'RECIBIDA'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "57087583-8ff0-4fe2-aca2-efbe3509adf1",
+      "name": "BuscarPendientes",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const entrega = new Date($json.FechaEntrega);\nconst limite = new Date($json.FechaLimite);\n\nlet estado = \"PENDIENTE_CALIFICACION\";\n\nif(entrega > limite){\n  estado = \"ENTREGA_TARDIA\";\n}\n\nreturn [{\n  ...$json,\n  NuevoEstado: estado\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -112
+      ],
+      "id": "8b904ea7-867c-4464-a32c-0700a0803169",
+      "name": "Calcuiar Atraso"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE Entregas\nSET Estado = '{{ $json.NuevoEstado }}'\nWHERE IdEntrega = {{ $json.IdEntrega }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        -272
+      ],
+      "id": "3eb1463a-77fe-4304-aa2b-f5610b1ab867",
+      "name": "Actualizar Estado",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO Auditoria\n(\n Evento,\n Fecha,\n UsuarioSistema,\n Resultado\n)\nVALUES\n(\n 'PROCESAMIENTO',\n GETDATE(),\n 'N8N',\n 'Entrega {{ $json.IdEntrega }} -> {{ $json.NuevoEstado }}'\n)",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        -48
+      ],
+      "id": "29f82236-52c1-451c-9cfe-ada1ffb7fcff",
+      "name": "Registrar Auditoria",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c2aafcce-2781-41a3-87e5-d876574b38ab",
+      "name": "temporizador cada 10 segundos"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Calcuiar Atraso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BuscarPendientes": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcuiar Atraso": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Estado",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Registrar Auditoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Estado": {
+      "main": [
+        []
+      ]
+    },
+    "temporizador cada 10 segundos": {
+      "main": [
+        [
+          {
+            "node": "BuscarPendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "130be1d5-4c6a-49a4-bb9b-b0e926d55349",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "AaRbJbWjdZOhORAK",
+  "tags": []
+}

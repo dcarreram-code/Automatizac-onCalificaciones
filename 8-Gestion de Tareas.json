@@ -1,0 +1,127 @@
+{
+  "name": "8-Gestion de Tareas",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crear-tarea",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -480,
+        -272
+      ],
+      "id": "6c7d2f10-b18f-4f46-8269-f3c0d1c0b194",
+      "name": "Webhook",
+      "webhookId": "94a3609d-c41a-48bb-8e7f-8ad54dcd9c89"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO Tareas\n(\n    Titulo,\n    Descripcion,\n    FechaPublicacion,\n    FechaLimite,\n    IdCurso,\n    Estado\n)\nVALUES\n(\n    '{{ $json.body.titulo }}',\n    '{{ $json.body.descripcion }}',\n    GETDATE(),\n    '{{ $json.body.fechaLimite }}',\n    {{ $json.body.idCurso }},\n    'ACTIVA'\n)",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        -128,
+        -112
+      ],
+      "id": "8b2a3287-6450-4504-b67f-39188b2af21f",
+      "name": "agregar tarea",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO Auditoria\n(\n    Evento,\n    Fecha,\n    UsuarioSistema,\n    Resultado\n)\nVALUES\n(\n    'Nueva tarea creada',\n    GETDATE(),\n    'DOCENTE',\n    'Tarea registrada correctamente'\n)",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        128,
+        -112
+      ],
+      "id": "3661fdd5-0e70-4d7e-b5bb-20013d9baa3e",
+      "name": "agreagar auditoria",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        432,
+        -256
+      ],
+      "id": "2d62f86b-3451-432b-8d9d-6a99c65cddc0",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "agregar tarea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agregar tarea": {
+      "main": [
+        [
+          {
+            "node": "agreagar auditoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agreagar auditoria": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ec6117cf-95c6-4df0-9857-f0779be04fdb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "U9aaw6dt7OCyy2i7",
+  "tags": []
+}

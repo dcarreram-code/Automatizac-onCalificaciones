@@ -1,0 +1,194 @@
+{
+  "name": "7-LOGIN",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "login",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        16,
+        16
+      ],
+      "id": "f0e7e421-892b-445a-a12f-af0e20bfa4da",
+      "name": "Webhook",
+      "webhookId": "e51f0854-f992-43e7-8f06-40891066563a"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    u.IdUsuario,\n    u.Usuario,\n    u.Rol,\n    e.IdEstudiante,\n    e.Nombre\nFROM Usuarios u\nLEFT JOIN Estudiantes e\n    ON u.IdUsuario = e.IdUsuario\nWHERE u.Usuario = '{{ $json.body.usuario }}'\nAND u.PasswordHash = '{{ $json.body.password }}'\nAND u.Estado = 1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        16
+      ],
+      "id": "8d2f9426-e63a-426b-b575-357f9f4df437",
+      "name": "Buscar Usuario",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f38b8746-9ecf-4baa-80ac-c82732610e34",
+              "leftValue": "={{ $json.Usuario }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        16
+      ],
+      "id": "fd17f533-89f8-41f8-a00d-a42b7052384b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n{\njson:{\nsuccess:true,\nrol:$json.Rol,\nidEstudiante:$json.IdEstudiante,\nnombre:$json.Nombre\n}\n}\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        96
+      ],
+      "id": "b7e65288-950a-4166-9838-c1dfd5962669",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n{\njson:{\nsuccess:false\n}\n}\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        -80
+      ],
+      "id": "4dfdeb2c-a4d8-4a72-adfb-09159e469007",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"rol\": \"{{ $json.rol }}\",\n  \"idEstudiante\": {{ $json.IdEstudiante || 0 }},\n  \"nombre\": \"{{ $json.Nombre || '' }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        944,
+        -16
+      ],
+      "id": "8501bd13-a1ce-4824-ae8e-2972e56dc8a7",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Buscar Usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Usuario": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "59e059dc-e411-46ae-bfa9-1b9d5bf76526",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "f5fJDBPfkrGWd8s3",
+  "tags": []
+}

@@ -1,0 +1,238 @@
+{
+  "name": "3-WB-CALIFICACION DE TAREAS",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "calificar",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -64,
+        -48
+      ],
+      "id": "0be4c9fa-3f45-4aa5-8df8-87a355cb72f1",
+      "name": "Webhook",
+      "webhookId": "8bad8dc6-0ae8-4a81-ae71-5a2905e834ef"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9636f205-994f-48c5-a5af-70e14ae1699c",
+              "leftValue": "={{$json.nota >= 0 && $json.nota <= 100}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        192,
+        128
+      ],
+      "id": "0a03645a-f92d-41bf-b52b-1db180dd641d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        -208
+      ],
+      "id": "0468304b-5110-4662-ad89-22a8e3dc17c8",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM Entregas\nWHERE IdEntrega = {{ $json.body.idEntrega }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        0
+      ],
+      "id": "39621b41-3392-47d3-9ad4-f96dedc1a7ef",
+      "name": "Buscar Entrega",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO Auditoria\n(\n    Evento,\n    Fecha,\n    UsuarioSistema,\n    Resultado\n)\nVALUES\n(\n    'CALIFICACION',\n    GETDATE(),\n    'DOCENTE',\n    'Entrega {{ $json.body.idEntrega }} calificada con nota {{ $json.body.nota }}'\n)",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        -112
+      ],
+      "id": "37024589-8a33-4869-8bd3-6388a713c800",
+      "name": "InsertarAuditoría",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"mensaje\": \"Calificación guardada correctamente\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1296,
+        -96
+      ],
+      "id": "3d12f482-fef7-4c87-8813-209f1dd5e22a",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE Entregas\nSET\n    Nota = {{ $json.body.nota }},\n    Estado = 'CALIFICADA'\nWHERE IdEntrega = {{ $json.body.idEntrega }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        -288
+      ],
+      "id": "46488ec4-f2b0-49b4-a835-14cf3fa1c450",
+      "name": "Actualizar Nota",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Buscar Entrega",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Buscar Entrega": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Nota",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "InsertarAuditoría",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "InsertarAuditoría": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Nota": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "b58a7f97-4c8e-4c6f-89b3-8b2e2c516e79",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "SxHkxNnJFyQUpaT5",
+  "tags": []
+}

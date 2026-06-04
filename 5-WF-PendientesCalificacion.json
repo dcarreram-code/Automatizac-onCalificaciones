@@ -1,0 +1,119 @@
+{
+  "name": "5-WF-PendientesCalificacion",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "pendientes-calificar",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "52096499-9d6d-474a-a5c0-c2a93709b15e",
+      "name": "Webhook",
+      "webhookId": "acd423ee-90fb-412e-af86-74fe4c6e24a8"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    e.IdEntrega,\n    es.Nombre,\n    t.Titulo,\n    e.Estado\nFROM Entregas e\nINNER JOIN Estudiantes es\n    ON e.IdEstudiante = es.IdEstudiante\nINNER JOIN Tareas t\n    ON e.IdTarea = t.IdTarea\nWHERE e.Estado = 'PENDIENTE_CALIFICACION'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        80
+      ],
+      "id": "ee0d5c58-3a51-4abb-a74e-781cf13aa72d",
+      "name": "Microsoft SQL",
+      "credentials": {
+        "microsoftSql": {
+          "id": "UsRFdn95K5vtKwV4",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n{\njson:{\npendientes:\n$input.all().map(\nitem => item.json\n)\n}\n}\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -128
+      ],
+      "id": "aff47f83-afd6-429f-a157-83c0fce084e1",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        608,
+        112
+      ],
+      "id": "56ab6e38-506b-49d4-a0b5-b3200c86eef1",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Microsoft SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microsoft SQL": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "aa11f523-67ed-4734-bc3f-a53d18f2c97b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "ahMV1HJsB8LPIkJz",
+  "tags": []
+}
