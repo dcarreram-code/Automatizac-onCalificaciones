@@ -47,7 +47,7 @@ Visualización de estado de tareas.
 Consulta de notas obtenidas.
 Automatización con n8n
 Validación de usuarios.
-Consulta de información académica.
+Consulta de información académica..
 Registro de tareas.
 Registro de entregas.
 Registro de calificaciones.
